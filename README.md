@@ -158,20 +158,6 @@ USAGE_BY_AGENT.md
 
 它会把这类需求改成更安全的方案：原创改写、事实核对、真人化表达、低风险标题、合规变现。
 
-## 开源建议
-
-你可以直接把这个目录上传到 GitHub。建议仓库名：
-
-```text
-wechat-vertical-mini-account-skill
-```
-
-也可以改成更通用的英文名：
-
-```text
-vertical-content-account-skill
-```
-
 ## License
 
 MIT

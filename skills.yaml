@@ -1,0 +1,13 @@
+skills:
+  - id: wechat-vertical-mini-account
+    display_name: "公众号垂直小号增长与写作"
+    short_description: "公众号起号、选题、标题、写稿、复盘、变现和合规审稿"
+    category: "wechat-account"
+  - id: multi-product-buying-guide-writing
+    display_name: "多产品导购爆款写作"
+    short_description: "手机和数码多产品横评、预算档推荐、降价盘点和消费决策文"
+    category: "buying-guide"
+  - id: single-product-price-drop-writing
+    display_name: "单品降价捡漏导购写作"
+    short_description: "单款手机降价、清仓捡漏、旧旗舰对比新机和购买时机判断"
+    category: "buying-guide"

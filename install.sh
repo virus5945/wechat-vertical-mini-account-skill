@@ -1,54 +1,115 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/wechat-vertical-mini-account"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILLS_FILE="$REPO_DIR/skills.yaml"
 
-if [[ ! -f "$SKILL_DIR/SKILL.md" ]]; then
-  echo "Cannot find $SKILL_DIR/SKILL.md" >&2
+if [[ ! -f "$SKILLS_FILE" ]]; then
+  echo "Cannot find $SKILLS_FILE" >&2
   exit 1
 fi
 
+ALL_SKILLS=()
+while IFS= read -r skill_id; do
+  ALL_SKILLS+=("$skill_id")
+done < <(awk '/^[[:space:]]*-[[:space:]]*id:/ { print $3 }' "$SKILLS_FILE")
+if [[ "${#ALL_SKILLS[@]}" -eq 0 ]]; then
+  echo "No skills found in $SKILLS_FILE" >&2
+  exit 1
+fi
+
+# Determine which skills to install
+SKILL_ARG="${2:-all}"
+if [[ "$SKILL_ARG" == "all" ]]; then
+  SKILLS=("${ALL_SKILLS[@]}")
+else
+  # Validate skill name
+  FOUND=false
+  for s in "${ALL_SKILLS[@]}"; do
+    if [[ "$s" == "$SKILL_ARG" ]]; then
+      FOUND=true
+      break
+    fi
+  done
+  if [[ "$FOUND" == false ]]; then
+    echo "Unknown skill: $SKILL_ARG" >&2
+    echo "Available skills: ${ALL_SKILLS[*]}" >&2
+    exit 1
+  fi
+  SKILLS=("$SKILL_ARG")
+fi
+
+# Verify each skill directory exists
+for SKILL in "${SKILLS[@]}"; do
+  SKILL_DIR="$REPO_DIR/$SKILL"
+  if [[ ! -f "$SKILL_DIR/SKILL.md" ]]; then
+    echo "Cannot find $SKILL_DIR/SKILL.md" >&2
+    exit 1
+  fi
+done
+
 TARGET="${1:-user-agents}"
+
+install_skills() {
+  local dest_base="$1"
+  for SKILL in "${SKILLS[@]}"; do
+    local src="$REPO_DIR/$SKILL"
+    local dest="$dest_base/$SKILL"
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -R "$src/." "$dest/"
+    find "$dest" -type f -name ".DS_Store" -delete
+    echo "  Installed $SKILL -> $dest"
+  done
+}
 
 case "$TARGET" in
   openclaw)
-    mkdir -p "$HOME/.openclaw/skills"
-    rm -rf "$HOME/.openclaw/skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" "$HOME/.openclaw/skills/"
-    echo "Installed to ~/.openclaw/skills/wechat-vertical-mini-account"
+    dest="$HOME/.openclaw/skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   claude)
-    mkdir -p "$HOME/.claude/skills"
-    rm -rf "$HOME/.claude/skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" "$HOME/.claude/skills/"
-    echo "Installed to ~/.claude/skills/wechat-vertical-mini-account"
+    dest="$HOME/.claude/skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   user-agents)
-    mkdir -p "$HOME/.agents/skills"
-    rm -rf "$HOME/.agents/skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" "$HOME/.agents/skills/"
-    echo "Installed to ~/.agents/skills/wechat-vertical-mini-account"
+    dest="$HOME/.agents/skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   project-agents)
-    mkdir -p ".agents/skills"
-    rm -rf ".agents/skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" ".agents/skills/"
-    echo "Installed to .agents/skills/wechat-vertical-mini-account"
+    dest=".agents/skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   project-claude)
-    mkdir -p ".claude/skills"
-    rm -rf ".claude/skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" ".claude/skills/"
-    echo "Installed to .claude/skills/wechat-vertical-mini-account"
+    dest=".claude/skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   workspace-skills)
-    mkdir -p "skills"
-    rm -rf "skills/wechat-vertical-mini-account"
-    cp -R "$SKILL_DIR" "skills/"
-    echo "Installed to skills/wechat-vertical-mini-account"
+    dest="skills"
+    mkdir -p "$dest"
+    install_skills "$dest"
     ;;
   *)
-    echo "Usage: ./install.sh [openclaw|claude|user-agents|project-agents|project-claude|workspace-skills]" >&2
+    echo "Usage: ./install.sh [target] [skill]" >&2
+    echo "" >&2
+    echo "Targets:" >&2
+    echo "  openclaw         Install to ~/.openclaw/skills/" >&2
+    echo "  claude           Install to ~/.claude/skills/" >&2
+    echo "  user-agents      Install to ~/.agents/skills/ (default)" >&2
+    echo "  project-agents   Install to .agents/skills/" >&2
+    echo "  project-claude   Install to .claude/skills/" >&2
+    echo "  workspace-skills Install to skills/" >&2
+    echo "" >&2
+    echo "Skills (default: all):" >&2
+    echo "  all                              Install all skills" >&2
+    for s in "${ALL_SKILLS[@]}"; do
+      echo "  $s" >&2
+    done
     exit 1
     ;;
 esac
